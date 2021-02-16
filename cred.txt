@@ -1,0 +1,2 @@
+password: V2PLLKJAsXNjCvbuhSmj01Au
+username: elastic
