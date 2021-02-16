@@ -63,9 +63,7 @@ def get_songs_from_playlist(playlist):
     all_songs = {}
     playlist_songs = sp.playlist_items(playlist,fields="items.track.id,total,tracks,uri",additional_types=['track'])
     total_songs = playlist_songs['total']
-    if total_songs == 0:
-        pass
-    elif total_songs > 50:
+    if total_songs >= 50:
         length_of_last = 50
         offset = 0
         while length_of_last == 50:
@@ -82,10 +80,7 @@ def get_songs_from_playlist(playlist):
                 songDict = {}
                 songDict = {'title': item['name'], 'artist': item['artists'][0]['name'], 'songID': item['id'], 'artistId': item['artists'][0]['id']}
                 songDict['popularity'] = item['popularity']
-                if total_songs >= 70:
-                    songDict['features'] = {'tempo': "None", 'key': "None", "mode": "None"}
-                else:
-                    songDict['features'] = sp.audio_features(item['id'])[0]
+                songDict['features'] = sp.audio_features(item['id'])[0]
                 curSong = Song(songDict)
                 curSong.spotifyPlaylists.append(playlist)
                 curSong.extract_features()
@@ -170,9 +165,14 @@ def object_to_dict(item):
     return item
 
 def write_songs(songs, file):
+    new_output = {}
+    for key, item in songs.items():
+        if isinstance(item, Song):
+            new_output[key] = jsonify(item) 
+        if isinstance(item, dict):
+            new_output[key] = item
     with open (file, 'w') as outfile:
-        songs = jsonifyDict(songs)
-        json.dump(songs,outfile,indent=4)
+        json.dump(new_output,outfile,indent=4)
 
 def check_for_updates(playlistFile, spotifyPlaylists):
     playlists_to_update = []
@@ -238,6 +238,26 @@ def refresh_songs_from_spotify(input):
                 else:
                     current_songs[songID] = songs_to_write[songID]
         write_songs(current_songs, 'songs.json')
+    elif type(input) == list:
+        for item in input:
+            songs_to_write = get_songs_from_playlist(item)
+            for songID,values in songs_to_write.items():
+                if songID in current_songs:
+                    try:
+                        if item in current_songs[songID]['spotifyPlaylists']:
+                            print ("already exists")
+                        else:
+                            current_songs[songID]['spotifyPlaylists'].append(item)
+                    except TypeError:
+                        if item in current_songs[songID].spotifyPlaylists:
+                            print("already exists")
+                        else:
+                            current_songs[songID].spotifyPlaylists.append(item)
+                else:
+                    current_songs[songID] = songs_to_write[songID]
+        write_songs(current_songs, 'songs.json')
+        
+        print ("it's a list!")
     else:
         print("Not sure what's happening")
 
@@ -324,6 +344,33 @@ def playlist_songs(playlist):
          print(value['title'] + "(" + value['songID'] + ") -- " + value['artist'] + ":  " + value['artistId'])
         #test ID = get_songs_from_playlist("1VKxmwEM7134yZGpE3speX")
 
+def playlists_by_length(length=1, operation="="):
+    output = []
+    all_playlists = get_items_from_file('playlists.json')
+    
+    if operation == "=":  
+        for key, item in all_playlists.items():
+            if item['total'] == length:
+                output.append(item['id'])
+    elif operation == ">":
+        for key, item in all_playlists.items():
+            if item['total'] >= length:
+                output.append(item['id'])
+    elif operation == "<":
+        for key, item in all_playlists.items():
+            if item['total'] <= length:
+                output.append(item['id'])
+    elif operation == 'between':
+        for key, item in all_playlists.items():
+            if item['total'] >= length[0] and item['total'] <= length[1]:
+                output.append(item['id'])
+    else:
+        print ('uh oh')
+    return output
+        
+
+
+
 
 #### - From dict
 def print_all_playlists(playlistDict):
@@ -340,6 +387,10 @@ def get_playlist_id(playlistName, playlistDict):
 
 #################################################################
 
+
+myplaylists = get_items_from_file('playlists.json')
+#savedSongs = get_items_from_file('songs.json')
+#traktorSongs = get_items_from_file('traktor_songs.json')
 
 
 
