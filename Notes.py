@@ -7,6 +7,10 @@
 #6. Get recommendations based on averages from playlist
 
 
+#IN TRAKTOR NML
+#Rating = Comment 2
+#Ranking = stars increases by 51 each time (1=51, 2=102, 3=153, etc)
+
 
 #Functions to build
     #Check if spotify song exists in traktor (Title, artist, bpm)
