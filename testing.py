@@ -36,19 +36,10 @@ class Playlist:
 class Song:
     def __init__(self, dictionary):
         self.spotifyPlaylists = []
-        #print(type(dictionary))
         if str(type(dictionary)) == "<class 'str'>":
             dictionary = json.loads(dictionary)
         for key in dictionary.keys():
             setattr(self, key, dictionary[key])
-    ###REMOVED THIS FUNCTIONALITY TO MAKE ADDING SONGS LESS RIGID --- DO THE SAME WITH PLAYLISTS
-    #def __init__(self, title, artist, songID, artistId):
-        #self.title = title
-        #self.artist = artist
-        #self.songID = songID
-        #self.artistId = artistId
-        #self.playlists = []
-        #features = {}
     def extract_features(self):
         self.key = self.features['key']
         self.tempo = self.features['tempo']
@@ -64,6 +55,8 @@ def jsonifyDict(dictOfObjects):
 def jsonify(song):
     song = song.__dict__
     return song
+
+
 current_songs = {}
 def get_songs_from_playlist(playlist):
     print('getting songs from playlist: ' + playlist)
@@ -79,22 +72,15 @@ def get_songs_from_playlist(playlist):
             song_list = []
             partial_songs = sp.playlist_items(playlist, limit=length_of_last, offset=offset, fields="items.track.id,total,tracs,uri",additional_types=['track'])
             this_segement_length = len(partial_songs['items'])
-            #print (partial_songs['total'])
             for i, item in enumerate(partial_songs['items']):
                 if item['track'] == None:
                     print("NoneType")
                 else:
-                    #print(item['track']['id'])
                     song_list.append(item['track']['id']) 
-            #print (len(song_list))
             trackInfo = sp.tracks(song_list)
-            #print(trackInfo['tracks'])
-            #print(playlist)
             for num, item in enumerate(trackInfo['tracks']):
                 songDict = {}
-                #spotifySong = sp.track(item['track']['id'])
                 songDict = {'title': item['name'], 'artist': item['artists'][0]['name'], 'songID': item['id'], 'artistId': item['artists'][0]['id']}
-                #curSong = Song(spotifySong['name'],spotifySong['artists'][0]['name'],spotifySong['id'],spotifySong['artists'][0]['id'])
                 songDict['popularity'] = item['popularity']
                 if total_songs >= 70:
                     songDict['features'] = {'tempo': "None", 'key': "None", "mode": "None"}
@@ -103,8 +89,6 @@ def get_songs_from_playlist(playlist):
                 curSong = Song(songDict)
                 curSong.spotifyPlaylists.append(playlist)
                 curSong.extract_features()
-                #songID = curSong.title + "___" + curSong.artist  ---- was thinking about hashing song info for lookup
-                #hashedSong = hash_fn.hash(songID)
                 all_songs[item['id']] = curSong
             offset = offset + length_of_last
             if this_segement_length <= 50:
@@ -117,47 +101,19 @@ def get_songs_from_playlist(playlist):
             if item['track'] == None:
                 print("NoneType")
             else:
-                #print(item['track']['id'])
                 song_list.append(item['track']['id']) 
         trackInfo = sp.tracks(song_list)
         for num, item in enumerate(trackInfo['tracks']):
             songDict = {}
-            #spotifySong = sp.track(item['track']['id'])
             songDict = {'title': item['name'], 'artist': item['artists'][0]['name'], 'songID': item['id'], 'artistId': item['artists'][0]['id']}
-            #curSong = Song(spotifySong['name'],spotifySong['artists'][0]['name'],spotifySong['id'],spotifySong['artists'][0]['id'])
             songDict['popularity'] = item['popularity']
             songDict['features'] = sp.audio_features(item['id'])[0]
             curSong = Song(songDict)
             curSong.spotifyPlaylists.append(playlist)
             curSong.extract_features()
-            #songID = curSong.title + "___" + curSong.artist  ---- was thinking about hashing song info for lookup
-            #hashedSong = hash_fn.hash(songID)
             all_songs[item['id']] = curSong               
     return all_songs
-            
-    
-    ######UPDATED ABOVE TO PULL MULTIPLE TRACKS AT ONCE
-    # song_list = []
-    # for i, item in enumerate(playlist_songs['items']):
-    #     if item['track'] == None:
-    #         print("NoneType")
-    #     else:
-    #         song_list.append(item['track']['id'])
-    #     x = 1
-    #     for 
-    #         #30VtsL5s52V6TonPsLHnON
-    #         songDict = {}
-    #         spotifySong = sp.track(item['track']['id'])
-    #         songDict = {'title': spotifySong['name'], 'artist': spotifySong['artists'][0]['name'], 'songID': spotifySong['id'], 'artistId': spotifySong['artists'][0]['id']}
-    #         #curSong = Song(spotifySong['name'],spotifySong['artists'][0]['name'],spotifySong['id'],spotifySong['artists'][0]['id'])
-    #         songDict['popularity'] = spotifySong['popularity']
-    #         songDict['features'] = sp.audio_features(item['track']['id'])[0]
-    #         curSong = Song(songDict)
-    #         curSong.spotifyPlaylists.append(playlist)
-    #         curSong.extract_features()
-    #         #songID = curSong.title + "___" + curSong.artist  ---- was thinking about hashing song info for lookup
-    #         #hashedSong = hash_fn.hash(songID)
-    #         all_songs[spotifySong['id']] = curSong
+        
 
 def search_song(name, numResults):
     song = {}
@@ -188,9 +144,7 @@ def get_all_playlists_from_spotify():
         playlists = sp.current_user_playlists(limit=length_of_last,offset=offset)
         offset = offset + length_of_last
         for i, item in enumerate(playlists['items']):
-            #print (item)
             curPlaylist = Playlist(item['id'],item['name'],item['uri'],item['tracks']['total'])
-            #curPlaylist.songs = get_songs_from_playlist(item['id'])
             all_playlists[item['id']] = curPlaylist.__dict__
         length_of_last = len(playlists['items'])
     return all_playlists
@@ -199,9 +153,10 @@ def dict_to_objects(dictName, inputtype):
     newDict = {}
     if inputtype == 'songs' or inputtype == 'tracks':
         for key, item in dictName.items():
-            #print (str(item))
-            #print (key)
             newDict[dictName[key]['songID']] = Song(dictName[key])
+    elif inputtype == 'playlists':
+        for key, item in dictName.items():
+            newDict[dictName[key]['id']] = Playlist(dictName[key]['id'],dictName[key]['name'],dictName[key]['uri'],dictName[key]['total'])
     return newDict 
 
 
@@ -217,7 +172,6 @@ def object_to_dict(item):
 def write_songs(songs, file):
     with open (file, 'w') as outfile:
         songs = jsonifyDict(songs)
-        #test = json.dumps(all_songs)
         json.dump(songs,outfile,indent=4)
 
 def check_for_updates(playlistFile, spotifyPlaylists):
@@ -235,10 +189,6 @@ def update_playlists():
     with open ('playlists.json', 'w') as outfile:
         json.dump(myplaylists, outfile, indent=4)
 
-#uncomment to refresh playlists
-#update_playlists()
-
-#uncomment to refind songs from playlists - NEED TO CHECK AGAINST CURRENT
 
 
 ########Returns all playlists in playlists.json id, name, uri, total
@@ -266,7 +216,6 @@ def refresh_songs_from_spotify(input):
                 if songID in current_songs:
                     if playlistID in values.spotifyPlaylists:
                         pass
-                        #print ("already exists")
                     else:
                         current_songs[songID]['spotifyPlaylists'].append(playlistID)
                 else:
@@ -281,8 +230,6 @@ def refresh_songs_from_spotify(input):
             print (playlistID + ":  " + str(current_playlists[playlistID].total) + " tracks")
             songs_to_write = get_songs_from_playlist(playlistID)
             for songID,values in songs_to_write.items():
-                #print('songID = ' + songID)
-                #print('values = ' + str(values.__dict__))
                 if songID in current_songs:
                     if playlistID in current_songs[songID]['spotifyPlaylists']:
                         print ("already exists")
@@ -301,30 +248,20 @@ def refresh_songs_from_spotify(input):
 
 
 
-
-
-
-#testSongs = get_songs_from_playlist("1VKxmwEM7134yZGpE3speX")
-#print(testSongs)
-
 ######Getting songs from a file with specific features
 def get_songs_with_params(songlist, **kwargs):
     all_songs = get_items_from_file(songlist)
     checkParams = {}
     for key, value in kwargs.items(): 
         checkParams[key] = value
-    #print(all_songs)
     song_output = {}
     for key, song in all_songs.items():
-        #for key, item in checkParams.items():
-            #print(str(song['features'][key]) + " = key and " + str(item) + " = item")
-            if song['features']['valence'] <= 0.2 and song['features']['energy'] >= checkParams['energy'] and song['features']['danceability'] >= checkParams['danceability']:
-                song_output[song['songID']] = Song(song['title'],song['artist'],song['songID'],song['artistId'])
-                song_output[song['songID']].features = song['features']
-                song_output[song['songID']].playlists = song['playlists']
-    
+        if song['features']['valence'] <= 0.2 and song['features']['energy'] >= checkParams['energy'] and song['features']['danceability'] >= checkParams['danceability']:
+            song_output[song['songID']] = Song(song['title'],song['artist'],song['songID'],song['artistId'])
+            song_output[song['songID']].features = song['features']
+            song_output[song['songID']].playlists = song['playlists'] 
     return song_output
-    #print(song_output)
+
 
 
  #####RECOMMENDATIONS###### 
@@ -354,14 +291,15 @@ maxpop = 5
 songCount = 50
 checkCount = 0
 def get_recs(*kwargs):
-    #seed_artists=artists
+    #seed_artists=artists    ===  Add artists to recommendation seeds
     recs = cc.recommendations(seed_genres=genres,seed_tracks=songs,limit=songCount,min_energy=minnrg, target_energy=targnrg, mim_danceability=mindance, target_danceability=targdance, min_instrumentalness=minstrument,target_instrumentalness=targstrument, max_valence=maxval, target_valence=targval, max_popularity=maxpop, target_time_signature=4,max_tempo=maxtempo, target_tempo=targtempo, target_mode=targmode)
     print (minnrg)
     i = 0
     for key in recs['tracks']:
-        #print(key['name'] + " - " + recs[key]['artists']['id'])
         print (key['name']+ " --" + key['artists'][0]['name'] + " (songID: " + key['id'] + "  |  artistID: " + key['artists'][0]['id'])
         i += 1
+
+
 ############################################################
 #####
 #Song Name, info, BPM, Album are all separate
@@ -401,25 +339,6 @@ def get_playlist_id(playlistName, playlistDict):
 
 
 #################################################################
-
-
-#Proving playlists are written
-#for playlist in myplaylists:
-    #print(playlist)
-
-# getting songs from playlists
-#i = 0
-#shows all playlists
-#for name, item in myplaylists.items():
-    #print ("%s. %s = %s [%d tracks]" % (i, item.name, item.id, item.total))
-    #item.songs = get_songs_from_playlist(item.id)
-    #if item.id == "37i9dQZF1DXdgz8ZB7c2CP":
-    #n = 0
-    #for song in myplaylists[item.id].songs.items():
-    #    print(song)
-    #    n += 1
-    #i += 1
-
 
 
 
