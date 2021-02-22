@@ -10,10 +10,10 @@ from spotifyCreds import *
 
 ##SETS VARIABLES FOR RECOMMENDATIONS ---- #############################
 #artists = ["spotify:artist:7GZGpDZcYVX1wrbaOoDWOH","spotify:artist:04jj7dljPI0ixtNsz2pXWK"]
-genres = ['tech-house', 'bass-house','techno']
+genres = ['tech-house','minimal-techno', 'techno']
 #genres: 'techno' 'deep-house' 'detroit-techno' 'chicago-house' 'dance' 'house' 'bass house' 
 #'microhouse' 'deep groove house' 'tech house' 'uk tech house' 'tech-house' 'minimal-techno'
-songs = ['1NuESUfZC4PMUwW81tqWsu','5Jvvh8MN1joJjxFxfMWpSN']
+songs = ['3LugQD8pheEb2CBbASGnKn','0Q70tY30elsD7LLAyDbPxl']
 minnrg = 0.78
 targnrg = 0.88
 mindance = 0.685
@@ -21,7 +21,7 @@ targdance = 0.8
 minstrument = 0.77
 targstrument = 0.9
 maxval = 0.65
-targval = 0.03
+targval = 0.2
 maxtempo = 140
 targtempo = 127
 targmode = 0

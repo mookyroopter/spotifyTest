@@ -17,3 +17,20 @@ class Song:
         self.key = self.features['key']
         self.tempo = self.features['tempo']
         self.mode = self.features['mode']
+    def remove_element(self, element):
+        try:
+            delattr(self, element)
+        except AttributeError:
+            for item in dir(self):
+                print ('item in dir: ' + item)
+                try:
+                    print ("Deleting in class: " + getattr(self, item)[element])
+                    getattr(self,item).pop(element)
+                    print ("it popped")
+                except:
+                    print ("that didn't work")
+            #for value in self:
+            #    try:
+            #        self.value.pop(element)
+            #    except:
+            #        print ("couldn't pop " + element + " from " + value)

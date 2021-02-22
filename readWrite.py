@@ -2,11 +2,18 @@ import json
 from spotifyCreds import *
 from classes import *
 
+#turns an object into a dictionary
+def jsonify(item):
+    item = item.__dict__
+    return item
+
+#gets a dictionary from a json file
 def get_items_from_file(file):
     with open(file, 'r') as json_file:
         data = json.load(json_file, object_hook=dict)
     return data
 
+#overwrites current songs (dict and filename as inputs)
 def write_songs(songs, file):
     new_output = {}
     for key, item in songs.items():
@@ -17,10 +24,14 @@ def write_songs(songs, file):
     with open (file, 'w') as outfile:
         json.dump(new_output,outfile,indent=4)
 
+#prints number, title, and id of all saved playlists (input is Dictionary of playlist objects)
 def print_all_playlists(playlistDict):
+    i = 0
     for key, value in playlistDict.items():
-        print(value.name + ":  " + value.id)
+        print(str(i) + ".  " + value.name + ":  " + value.id)
+        i += 1
 
+#uses the playlist name and dictionary of playlist objects to find playlist ID
 def get_playlist_id(playlistName, playlistDict):
     output = "None"
     for key, value in playlistDict.items():
@@ -28,7 +39,7 @@ def get_playlist_id(playlistName, playlistDict):
             output = value.id
     print (output)
 
-
+#pulls all playlists from Json file into a dictionary, converts them to playlists objects
 def get_playlists_from_file(playlistFile):
     myplaylists = get_items_from_file('playlists.json')
     playlistDict = {}
@@ -36,7 +47,7 @@ def get_playlists_from_file(playlistFile):
         playlistDict[value['id']] = Playlist(value['id'], value['name'], value['uri'], value['total'])
     return playlistDict
 
-
+#searches spotify to find all songs in a particular playlist
 def get_songs_from_playlist(playlist):
     print('getting songs from playlist: ' + playlist)
     all_songs = {}
@@ -57,7 +68,7 @@ def get_songs_from_playlist(playlist):
             trackInfo = sp.tracks(song_list)
             for num, item in enumerate(trackInfo['tracks']):
                 songDict = {}
-                songDict = {'title': item['name'], 'artist': item['artists'][0]['name'], 'songID': item['id'], 'artistId': item['artists'][0]['id']}
+                songDict = {'TITLE': item['name'], 'ARTIST': item['artists'][0]['name'], 'CATALOG_NO': item['id'], 'artistId': item['artists'][0]['id']}
                 songDict['popularity'] = item['popularity']
                 songDict['features'] = sp.audio_features(item['id'])[0]
                 curSong = Song(songDict)
@@ -79,7 +90,7 @@ def get_songs_from_playlist(playlist):
         trackInfo = sp.tracks(song_list)
         for num, item in enumerate(trackInfo['tracks']):
             songDict = {}
-            songDict = {'title': item['name'], 'artist': item['artists'][0]['name'], 'songID': item['id'], 'artistId': item['artists'][0]['id']}
+            songDict = {'TITLE': item['name'], 'ARTIST': item['artists'][0]['name'], 'CATALOG_NO': item['id'], 'artistId': item['artists'][0]['id']}
             songDict['popularity'] = item['popularity']
             songDict['features'] = sp.audio_features(item['id'])[0]
             curSong = Song(songDict)
@@ -88,8 +99,20 @@ def get_songs_from_playlist(playlist):
             all_songs[item['id']] = curSong               
     return all_songs
 
+#finds differences between saved and current playlists (finds new, and looks at length)
+def check_for_updates(playlistFile, spotifyPlaylists):
+    playlists_to_update = []
+    for key,item in playlistFile.items():
+        if key in spotifyPlaylists and spotifyPlaylists[key]['total'] == playlistFile[key].total:
+            print("same")
+        else:
+            playlists_to_update.append(key)
+    return playlists_to_update
 
-
+#This will update songs in json file for:
+    #reset - all songs
+    #all - uses check for updates and quickly finds differences to update only what's needed
+    #list or id - refreshes playlists in a given list
 def refresh_songs_from_spotify(input):
     try:
         current_songs = get_items_from_file('songs.json')
@@ -150,3 +173,30 @@ def refresh_songs_from_spotify(input):
         print ("it's a list!")
     else:
         print("Not sure what's happening")
+
+#prints songs in a playlist
+def playlist_songs(playlist):
+    playlistSongs = get_songs_from_playlist(playlist)
+    for key,value in playlistSongs.items():
+        try:
+            print(value['title'] + "(" + value['songID'] + ") -- " + value['artist'] + ":  " + value['artistId'])
+        except TypeError:
+            print(value.title + "(" + value.songID + ") -- " + value.artist + ":  " + value.artistId)
+
+#finds songs from Json file that have particular attributes -- Currently only used for playlists(energy, danceability, artist, genre, etc)
+def find_songs_by_attr(songDict, attr, value):
+    output = {}
+    if attr == "playlist":
+        for key,item in songDict.items():
+            if value in item.spotifyPlaylists:
+                output[item.songID] = item
+    return output
+
+#given a list of features, find the average value
+def list_average(inputList):
+    sum = 0
+    amount = len(inputList)
+    for item in inputList:
+        sum + item
+    average = sum / amount
+    return average
