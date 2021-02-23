@@ -1,19 +1,22 @@
 from testing import *
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
 #get songs from NML File
 import xml.etree.ElementTree as ET
-tree = ET.parse('TestExport.nml')
-root = tree.getroot()
+
 unneeded_fields = ['DIR', 'FILE', 'FILESIZE', 'VOLUME', 'VOLUMEID','TRACK','AUTHOR_TYPE','BITRATE','COVERARTID', 'PLAYTIME',
 'PLAYTIME_FLOAT', 'RELEASE_DATE','FLAGS','BPM_QUALITY','PEAK_DB', 'PERCEIVED_DB','ANALYZED_DB']
 unneeded_tags = ['CUE', 'CUE_V2','LOCATION','LOUDNESS', 'MODIFICATION_INFO', "FLAGS", "STEMS", "SAMPLE_TYPE_INFO"]
 
 
-
+def replace_int_with_id(currentKey, song, songDict):
+    songDict[song.CATALOG_NO] = songDict[currentKey]
+    print ("current key: " + str(currentKey))
+    songDict.pop(currentKey)
+ 
 
 #Takes a Traktor NML file and converts each song into a Song Object
-def create_songs_from_file():
+def create_songs_from_file(file):
+    tree = ET.parse(file)
+    root = tree.getroot()
     traktorSongs = {}
     for num,entry in enumerate(root[2]):
         songDict = {}
@@ -37,14 +40,12 @@ def create_songs_from_file():
                     else:
                         if attributeSection.tag == "ALBUM" or attributeSection.tag == "MUSICAL_KEY" or attributeSection.tag == "TEMPO":
                             songDict[attributeSection.tag] = attributeSection.attrib[value]
-                        #songDict[attributeSection.tag][value] = attributeSection.attrib[value]
                         else:
                             songDict[value] = attributeSection.attrib[value]
-                        # - This would be nice to flatten the elements, but TITLE (song)
-                        #is overwritten by TITLE(album)
-                        #MUSICAL_KEY is written as VALUE
-
         traktorSongs[num] = Song(songDict)
+    listToCheck = list_of_songs_with_attr(traktorSongs, 'CATALOG_NO')
+    for item in listToCheck:
+        replace_int_with_id(item, traktorSongs[item], traktorSongs)
     return traktorSongs
 
 #     print(x.attrib) #BITRATE, GENRE, LABEL, RANKING, KEY, COMMENT, PLAYCOUNT, PLAYTIME, PLAYTIME_FLOAT, IMPORT_DATE, LAST_PLAYED, RELEASE_DATE
@@ -60,21 +61,26 @@ def find_song(songList, title): ### This does not work as-is since findall is sp
     return output
 
 #this find a particular artist/song combo and updates a given field - currently only comment
-def update_traktor(searchArtist, searchSong, field, info, overwrite):
+def update_traktor(fileToUpdate, searchArtist, searchSong, field, value, overwrite):
+    tree = ET.parse(fileToUpdate)
+    root = tree.getroot()
     for item in root[2]:
         try:
-            if item.attrib['ARTIST'] == searchArtist and item.attrib['TITLE'] == searchSong:
+            if fuzz.token_set_ratio(item.attrib['ARTIST'], searchArtist) > 90 and fuzz.token_set_ratio(item.attrib['TITLE'], searchSong) > 90:
                 print (item.attrib['TITLE'] + ":  " + item.attrib['ARTIST'])
                 info = item.find('INFO')
-                testing = info.get(field)
+                try:
+                    testing = info.get(field)
+                except:
+                    testing = value
                 print (testing)
                 if isinstance(testing, NoneType) or overwrite == True:
                     print ("setting comment")
-                    info.set(field,  info)
+                    info.set(field,  value)
                 else:
                     print (type(testing))
                     print ("not a match")
-                    testing = testing + " " + info
+                    testing = testing + " " + value
                     info.set(field, testing)
                 #print (testing)
             else:
@@ -83,7 +89,7 @@ def update_traktor(searchArtist, searchSong, field, info, overwrite):
         except:
             #print ("Whoops")
             pass
-    tree.write('duplicated.nml')
+    tree.write(fileToUpdate)
 
 #Initializes different dictionaries
 def load_things():
@@ -97,15 +103,39 @@ def load_things():
 
 def find_spotify_version(traktorSong, spotifyDict):
     for key, item in spotifyDict.items():
-        if fuzz.partial_ratio(traktorSong.ARTIST, item.artist) > 90 and fuzz.partial_ratio(traktorSong.TITLE, item.title) > 90:
+        if fuzz.token_set_ratio(traktorSong.ARTIST, item.artist) > 90 and fuzz.token_set_ratio(traktorSong.TITLE, item.title) > 90:
             pprint.pprint(item.__dict__)
             return item
+
+#I'd like to grab the missing spotify IDs from spotify itself for cleaner data and a better comparison
+#Ran into an issue where songs were not easily searchable. 
+#def get_missing_spotify_ID(traktorSong)
+
 
 def copy_attribute(inputSong, attribute, outputSong, newAttribute):
     toBeCopied = getattr(inputSong, attribute)
     setattr(outputSong, newAttribute, toBeCopied)
 
+def write_genre(traktorDict, songDict):
+    for key, item in traktorDict.items():
+        try:
+            copy_attribute(item, "GENRE", find_spotify_version(item, songDict), "GENRE")    
+        except:
+            pass    
+#quick load of traktor songs and spotify songs
 def test():
-    test = create_songs_from_file()
+    test = create_songs_from_file('duplicated.nml')
+    songs = get_items_from_file('songs.json')
+    songs = dict_to_objects(songs, 'songs')
     #spotifize(test)
-    return test
+    return test, songs
+
+
+
+def write_spotify_ID(traktorDict, spotifyDict):
+    for key, item in traktorDict.items():
+        try:
+            copy_attribute(find_spotify_version(traktorDict[key], spotifyDict),'songID',traktorDict[key], 'CATALOG_NO')
+            update_traktor('duplicated.nml', item.ARTIST, item.TITLE, 'CATALOG_NO', item.CATALOG_NO, True)
+        except:
+            pass

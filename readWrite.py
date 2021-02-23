@@ -190,6 +190,10 @@ def find_songs_by_attr(songDict, attr, value):
         for key,item in songDict.items():
             if value in item.spotifyPlaylists:
                 output[item.songID] = item
+    else:
+        for key, item in songDict.items():
+            if hasattr(item, attr) and getattr(item, attr) == value:
+                output[item.songID] = item
     return output
 
 #given a list of features, find the average value
@@ -200,3 +204,12 @@ def list_average(inputList):
         sum + item
     average = sum / amount
     return average
+
+def list_of_songs_with_attr(songDict, attr):
+    output = []
+    for key, item in songDict.items():
+        if hasattr(item, attr):
+            output.append(key)
+        else:
+            pass
+    return output
