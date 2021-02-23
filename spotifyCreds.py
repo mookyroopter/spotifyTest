@@ -2,6 +2,8 @@ import spotipy, os, sys
 import pprint
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy.oauth2 import SpotifyOAuth
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 from classes import *
 
 
@@ -54,13 +56,14 @@ def get_all_playlists_from_spotify():
 def search_song(name, inputartist):
     songDict = {}
     output = {}
-    results = sp.search(q=name, type='track', limit=10)
+    results = sp.search(q=name, type='track', limit=25)
     for key in results['tracks']['items']:
         song = create_song_fields(key)
         song = Song(song)
         songDict[song.songID] = song
+        pprint.pprint(song.title + ": " + song.artist)
     for key, item in songDict.items():
-        if item.artist == inputartist:
+        if fuzz.token_set_ratio(item.artist, inputartist) > 90 and fuzz.token_set_ratio(item.title, name) > 90:
             output[key] = item
             return output
         else:
