@@ -30,6 +30,8 @@
 
 
 #things to address:
+    #refreshing songs from spotify still gets all when selected - should only do new ones
+
     #search_song only finds match on exact song name
     #DONE ---#add artist to function pull a list of (#?) of songs and match artist
     #DONE ---#search_song will print these with more than 1 given --- Default to 10 and match artist
@@ -47,3 +49,15 @@
 
 #Get currently playing song, and write notes to track
 #add those notes to Rating Field in NML
+
+
+
+
+
+#####
+#Pre-tax - 401K
+#Roth-Taxable - Taxable
+#Roth-Non-Taxable - After-tax
+
+#Roth in 401K is okay Roth SIMPLE IRA - Okay - APRIL 2nd - 
+#877-662-7447
